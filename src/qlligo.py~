@@ -1,0 +1,109 @@
+import readligo as rl
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.mlab as mlab
+from scipy import signal
+from scipy.interpolate import interp1d
+from scipy.signal import butter, filtfilt, iirdesign, zpk2tf, freqz
+import sys
+import readset as rs
+import coreprocess as cp
+import argparse
+
+def qldata(datadir,
+           dataid=1126256640,
+           t0 = 1126259462.43,
+           deltat = 15,  # Number of seconds on each side of data
+           high_freq = 600., #band pass Hz
+           low_freq  = 30.,  #band pass Hz
+           fmin = 10.,
+           fmax = 2000.,
+           fig=False):
+    place, strainall, timeall, chan_dict=rs.read_strainset(datadir=datadir,dataid=dataid)
+    print(place)
+    if (np.sum((timeall[0]-timeall[1])**2)) == 0.0:
+        time=timeall[0]
+    else:
+        print("Under development")
+        sys.exit()
+        
+    dt = time[1] - time[0]
+    fs = int(np.round(1/dt))
+    print ("Found {0} seconds of data".format(strain[0].size*dt))
+#    t0=time[0]
+        
+    # the time sample interval (uniformly sampled!)
+    rel_time = time - t0
+    rel_timeL = timeL - t0
+    print("Got a sample frequency of {0}".format(fs))
+    print ("Found {0} seconds of data".format(strainH.size*dt))
+    print ("Found {0} seconds of data".format(strainL.size*dt))
+    
+    #-- How much data to use for the ASD?
+    N_samp = deltat*fs
+    strain_segH,time_segH = cp.get_seg(rel_timeH,dt,strainH)
+    strain_segL,time_segL = cp.get_seg(rel_timeL,dt,strainL)   
+    
+    # number of sample for the fast fourier transform:
+    NFFT = 1*fs
+    PxxH, freqsH = mlab.psd(strain_segH, Fs = fs, NFFT=NFFT, noverlap=NFFT/2, window=np.blackman(NFFT))
+    PxxL, freqsL = mlab.psd(strain_segL, Fs = fs, NFFT=NFFT, 
+                      noverlap=NFFT/2, window=np.blackman(NFFT))
+    
+    # We will use interpolations of the ASDs computed above for whitening:
+    psdH = interp1d(freqsH, PxxH)
+    psdL = interp1d(freqsL, PxxL)
+
+    if fig:
+        fig1 = plt.figure()
+        plt.loglog(freqsH, np.sqrt(PxxH),'r',label="Hanford")
+        plt.loglog(freqsL, np.sqrt(PxxL),'b',label="Livingston")
+        plt.axis([fmin, fmax, 1e-24, 1e-19])
+        plt.grid('on')
+        plt.ylabel('ASD (strain/rtHz)')
+        plt.xlabel('Freq (Hz)')
+        plt.legend(loc='upper center')
+        plt.title('Strain data near {0}'.format(t0))
+        plt.show()
+
+    # now whiten the data
+    strain_whiten_segH = cp.whiten(strain_segH,psdH,dt)
+    strain_whiten_segL = cp.whiten(strain_segL,psdL,dt)
+
+    # In[19]:
+    
+    # We need to suppress the high frequencies with some bandpassing:
+    bb, ab = butter(4, [low_freq*2./fs, high_freq*2./fs], btype='band')
+    
+    strain_whitenbpH = filtfilt(bb, ab, strain_whiten_segH)
+    strain_whitenbpL = filtfilt(bb, ab, strain_whiten_segL)
+    
+    
+    # In[38]:
+    
+    fig2 = plt.figure(figsize=(20,1))
+    plt.plot(time_segH,strain_whitenbpH,'r',label='H1 strain')
+    plt.plot(time_segL,strain_whitenbpL+5,'b',label='L1 strain')
+    #plt.xlim([-0.1,0.05])
+    plt.ylim([-5,10])
+    plt.xlabel('time (s) since '+str(t0))
+    plt.ylabel('whitented strain')
+    plt.legend(loc='lower left')
+    plt.title('WHITENED strain')
+    plt.show()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='QL for LIGO data')
+    parser.add_argument('-k', nargs=1, default=[0], help='kic', type=int)
+    args = parser.parse_args()    
+    kicint=args.k[0]
+
+    qldata(datadir="/finback",
+           dataid=1126256640,
+           t0 = 1126259462.43,
+           deltat = 15,  # Number of seconds on each side of data
+           high_freq = 600., #band pass Hz
+           low_freq  = 30.,  #band pass Hz
+           fmin = 10.,
+           fmax = 2000.,
+           fig=False)

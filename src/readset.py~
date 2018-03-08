@@ -1,0 +1,23 @@
+import readligo as rl
+from pathlib import Path
+
+def read_strainset(datadir="/finback",rel=1,ver="O",placelist=["L","H"],datanum=1126256640):
+    for place in placelist:
+        filename=getfilename(datadir,rel,"O",place,datanum)
+        print(filename)
+        strain, time, chan_dict = rl.loaddata(filename, place+str(rel))
+
+def getfilename(datadir,rel,ver,place,datanum,resl="4096",tag="_LOSC_4_V1-"):
+    sr=str(rel)
+    eachf=place+"-"+place+sr+tag+str(datanum)+"-"+resl+".hdf5"
+    filename=Path(datadir).joinpath(Path("O"+place+sr))
+    filename=filename.joinpath(Path(eachf))
+    return filename
+    
+#    filenameH=Path(datadir).joinpath(Path("OH"+str(rel)))
+#    filenameH=filenameH.joinpath(Path("H-H1_LOSC_4_V1-1126256640-4096.hdf5"))
+#    strainH, timeH, chan_dict_H1 = rl.loaddata(filenameH, 'H1')
+#    strainL, timeL, chan_dict_L1 = rl.loaddata(filenameL, 'L1')
+
+if __name__ == "__main__":
+    read_strainset()
