@@ -8,6 +8,7 @@ from scipy.signal import butter, filtfilt, iirdesign, zpk2tf, freqz
 import sys
 import readset as rs
 import coreprocess as cp
+import searchfile as sf
 import argparse
 
 def qldata(datadir,
@@ -65,20 +66,31 @@ def qldata(datadir,
     plt.ylabel('whitented strain')
     plt.legend(loc='lower left')
     plt.title('WHITENED strain')
+    plt.savefig("ql.png")
     plt.show()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='QL for LIGO data')
-    parser.add_argument('-k', nargs=1, default=[0], help='kic', type=int)
-    args = parser.parse_args()    
-    kicint=args.k[0]
+    parser.add_argument('-d', nargs=1, default=["/finback"], help='data directory', type=str)
+    parser.add_argument('-t', nargs=1, default=[1126259462.43], help='GPS time center', type=float)
+    parser.add_argument('-c', nargs=1, default=[600.0,30.0], help='frequency filter ', type=float)
+    parser.add_argument('-l', nargs=1, default=[15], help='time width', type=int)
 
-    qldata(datadir="/finback",
-           dataid=1126256640,
-           t0 = 1126259462.43,
-           deltat = 15,  # Number of seconds on each side of data
-           high_freq = 600., #band pass Hz
-           low_freq  = 30.,  #band pass Hz
+    args = parser.parse_args()
+    tcenter=args.t[0]
+    dirn=args.d[0]
+    high_freq=args.c[0]
+    low_freq=args.c[1]
+    deltat=args.l[0]
+
+    
+    dataid=sf.get_dataid(dirn+"/OL1/",tcenter)
+    qldata(datadir=dirn,
+           dataid=dataid,
+           t0 = tcenter,
+           deltat = deltat,  # Number of seconds on each side of data
+           high_freq = high_freq, #band pass Hz
+           low_freq  = low_freq,  #band pass Hz
            fmin = 10.,
            fmax = 2000.,
            fig=False)
