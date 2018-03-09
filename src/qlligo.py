@@ -73,7 +73,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='QL for LIGO data')
     parser.add_argument('-d', nargs=1, default=["/finback"], help='data directory', type=str)
     parser.add_argument('-t', nargs=1, default=[1126259462.43], help='GPS time center', type=float)
-    parser.add_argument('-c', nargs=1, default=[600.0,30.0], help='frequency filter ', type=float)
+    parser.add_argument('-c', nargs=2, default=[600.0,30.0], help='frequency filter ', type=float)
     parser.add_argument('-l', nargs=1, default=[15], help='time width', type=int)
 
     args = parser.parse_args()
